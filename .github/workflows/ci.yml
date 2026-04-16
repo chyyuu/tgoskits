@@ -220,8 +220,8 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      BASE_BRANCH: dev
-      BOT_BRANCH: release-plz-dev
+      BASE_BRANCH: main
+      BOT_BRANCH: release-plz-main
       GH_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
@@ -318,8 +318,8 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "No release changes were generated for \`dev\`." >> "$GITHUB_STEP_SUMMARY"
 
-  release_placeholder_main:
-    name: Release placeholder for main
+  release_plz_release_main:
+    name: Release publish for main
     if: >-
       ${{
         always()
@@ -328,19 +328,38 @@ jobs:
         && (needs.test_axvisor_self_hosted.result == 'success' || needs.test_axvisor_self_hosted.result == 'skipped')
         && github.event_name == 'push'
         && github.ref_name == 'main'
+        && github.repository_owner == 'rcore-os'
       }}
     needs:
       - test_std
       - test_qemu_matrix
       - test_axvisor_self_hosted
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - name: Summarize future release flow
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ env.GH_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Install release-plz CLI
+        run: cargo install --locked release-plz
+
+      - name: Run release-plz release
         run: |
-          echo "## Release placeholder" >> "$GITHUB_STEP_SUMMARY"
+          release-plz release --config release-plz.toml --forge github --git-token "$GH_TOKEN"
+
+      - name: Summarize release
+        if: always()
+        run: |
+          echo "## release-plz release" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "All checks finished successfully on \`main\`." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Future release commands:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- \`release-plz update --config release-plz.toml\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- \`release-plz release --config release-plz.toml --forge github --git-token \\\"\${GITHUB_TOKEN}\\\"\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release completed on \`main\`." >> "$GITHUB_STEP_SUMMARY"
