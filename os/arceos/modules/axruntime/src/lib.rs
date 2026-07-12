@@ -224,6 +224,11 @@ pub fn rust_main(cpu_id: usize, arg: usize) -> ! {
 
     init_allocator();
 
+    // `std-compat` installs Rust std's panic runtime, which may use TLS before
+    // platform probing completes. The allocator is the only prerequisite.
+    #[cfg(all(feature = "tls", not(feature = "multitask")))]
+    init_tls();
+
     let (kernel_space_start, kernel_space_size) = ax_hal::mem::kernel_aspace();
 
     {
@@ -322,12 +327,6 @@ pub fn rust_main(cpu_id: usize, arg: usize) -> ! {
 
     #[cfg(feature = "smp")]
     self::mp::start_secondary_cpus(cpu_id);
-
-    #[cfg(all(feature = "tls", not(feature = "multitask")))]
-    {
-        info!("Initialize thread local storage...");
-        init_tls();
-    }
 
     ax_ctor_bare::call_ctors();
 

@@ -27,7 +27,11 @@ flowchart LR
 `riscv64` 是当前最适合作为第一条验证路径的架构之一。命令短、反馈明确，也最便于和测试套件中的主流验证路径对应起来。
 
 ```bash
-cargo xtask arceos qemu --package arceos-helloworld --target riscv64gc-unknown-none-elf
+cargo xtask arceos qemu \
+  --package arceos-helloworld \
+  --target riscv64gc-unknown-none-elf \
+  --config apps/arceos/build-riscv64gc-unknown-none-elf.toml \
+  --qemu-config apps/arceos/helloworld/qemu-riscv64.toml
 ```
 
 ### 1.2 AArch64

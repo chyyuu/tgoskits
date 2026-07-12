@@ -8,8 +8,8 @@ use tempfile::tempdir;
 use super::{
     ArceosBuildInfo, ArceosBuildMode, default_build_info_path,
     info::{load_build_info, resolve_build_info_path_in_dir},
-    load_arceos_build_mode, load_c_app_cargo_config, resolve_app_c_dir, resolve_app_c_mode,
-    resolve_build_info_path,
+    load_arceos_build_config, load_arceos_build_mode, load_c_app_cargo_config, resolve_app_c_dir,
+    resolve_app_c_mode, resolve_build_info_path,
 };
 use crate::{build, context::ResolvedBuildRequest};
 
@@ -54,6 +54,29 @@ fn resolves_dynamic_platform_features_and_args() {
             .any(|pair| pair == ["-Z", "build-std=core,alloc"])
     );
     assert!(!args.iter().any(|arg| arg.contains("-Clink-arg=-T")));
+}
+
+#[test]
+fn riscv64_helloworld_qemu_config_enables_irq_and_paging() {
+    let config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../apps/arceos/build-riscv64gc-unknown-none-elf.toml");
+
+    let config = load_arceos_build_config(&config_path).unwrap();
+
+    assert!(
+        config
+            .build_info
+            .features
+            .iter()
+            .any(|feature| feature == "irq")
+    );
+    assert!(
+        config
+            .build_info
+            .features
+            .iter()
+            .any(|feature| feature == "paging")
+    );
 }
 
 #[test]
